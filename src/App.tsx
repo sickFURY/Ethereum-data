@@ -18,8 +18,9 @@ const SUPPORTED_ASSETS: CryptoAsset[] = [
 import { AdvancedChart } from './components/AdvancedChart';
 import { CryptoHeatmap } from './components/CryptoHeatmap';
 import { ExchangeVolume } from './components/ExchangeVolume';
+import { LiquidationIntel } from './components/LiquidationIntel';
 
-type DashboardTab = 'dashboard' | 'heatmap';
+type DashboardTab = 'dashboard' | 'heatmap' | 'liquidation';
 
 function App() {
   const [timeframe] = useState<Timeframe>('1W');
@@ -70,7 +71,7 @@ function App() {
       </aside>
 
       <main className="main-content">
-        <div className="tabs-nav animate-fade-in">
+        <nav className="tabs-nav animate-fade-in">
           <button
             className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}
@@ -83,7 +84,13 @@ function App() {
           >
             Market Heatmap
           </button>
-        </div>
+          <button
+            className={`tab-btn ${activeTab === 'liquidation' ? 'active' : ''}`}
+            onClick={() => setActiveTab('liquidation')}
+          >
+            Liquidation Intel
+          </button>
+        </nav>
 
         {activeTab === 'dashboard' ? (
           <>
@@ -192,10 +199,12 @@ function App() {
               <ExchangeVolume data={exchangeVolumes} assetName={activeAsset.name} />
             </section>
           </>
-        ) : (
+        ) : activeTab === 'heatmap' ? (
           <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <CryptoHeatmap />
           </div>
+        ) : (
+          <LiquidationIntel assetName={activeAsset.name} />
         )}
       </main>
     </div>
