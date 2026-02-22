@@ -11,6 +11,12 @@ export interface ChartDataPoint {
     close: number;
 }
 
+export interface ExchangeVolumeData {
+    exchangeName: string;
+    volume24h: number;
+    marketShare: number;
+}
+
 interface UseCryptoDataResult {
     currentPrice: number | null;
     priceChange24h: number | null;
@@ -18,6 +24,7 @@ interface UseCryptoDataResult {
     marketCap: number | null;
     volume24h: number | null;
     chartData: ChartDataPoint[];
+    exchangeVolumes: ExchangeVolumeData[];
     isLoading: boolean;
     error: string | null;
 }
@@ -32,6 +39,7 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
     const [marketCap, setMarketCap] = useState<number | null>(null);
     const [volume24h, setVolume24h] = useState<number | null>(null);
     const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+    const [exchangeVolumes, setExchangeVolumes] = useState<ExchangeVolumeData[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +81,40 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                     case '1W': days = '7'; break;
                     case '1M': days = '30'; break;
                     case '1Y': days = '365'; break;
+                }
+
+                // Fetch Exchange Volume data natively to get top 7 exchanges
+                const tickersResponse = await fetch(`${API_BASE_URL}/coins/${coinId}/tickers`);
+                if (tickersResponse.ok) {
+                    const tickersData = await tickersResponse.json();
+
+                    const volumeByExchange = new Map<string, number>();
+                    let totalVolume = 0;
+
+                    // Group by market and sum USD volume across all pairs
+                    tickersData.tickers.forEach((ticker: any) => {
+                        const exchange = ticker.market.name;
+                        const volumeUsd = ticker.converted_volume.usd;
+
+                        if (volumeUsd) {
+                            volumeByExchange.set(exchange, (volumeByExchange.get(exchange) || 0) + volumeUsd);
+                            totalVolume += volumeUsd;
+                        }
+                    });
+
+                    // Sort descending and get top 7
+                    const sortedExchanges: ExchangeVolumeData[] = Array.from(volumeByExchange.entries())
+                        .map(([name, volume]) => ({
+                            exchangeName: name,
+                            volume24h: volume,
+                            marketShare: totalVolume > 0 ? (volume / totalVolume) * 100 : 0
+                        }))
+                        .sort((a, b) => b.volume24h - a.volume24h)
+                        .slice(0, 7);
+
+                    if (isMounted) {
+                        setExchangeVolumes(sortedExchanges);
+                    }
                 }
 
                 const historyResponse = await fetch(
@@ -144,6 +186,14 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                     setPriceChange24h(mockStartPrice * 0.02);
                     setPriceChangePercent24h(2.4);
 
+                    setExchangeVolumes([
+                        { exchangeName: 'Binance', volume24h: mockStartPrice * 2100000, marketShare: 42 },
+                        { exchangeName: 'Coinbase Exchange', volume24h: mockStartPrice * 800000, marketShare: 16 },
+                        { exchangeName: 'Kraken', volume24h: mockStartPrice * 550000, marketShare: 11 },
+                        { exchangeName: 'KuCoin', volume24h: mockStartPrice * 400000, marketShare: 8 },
+                        { exchangeName: 'Bybit', volume24h: mockStartPrice * 350000, marketShare: 7 },
+                    ]);
+
                     const mockChartData: ChartDataPoint[] = [];
                     const now = new Date();
                     let currentMockPrice = mockStartPrice;
@@ -202,6 +252,7 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
         marketCap,
         volume24h,
         chartData,
+        exchangeVolumes,
         isLoading,
         error
     };
