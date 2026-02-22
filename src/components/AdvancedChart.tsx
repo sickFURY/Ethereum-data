@@ -47,8 +47,7 @@ export const AdvancedChart: React.FC<ChartProps> = ({
                     hotlist: true,
                     calendar: false,
                     studies: [
-                        "MASimple@tv-basicstudies", // Add default SMA
-                        "Volume@tv-basicstudies" // Add Volume
+                        "MASimple@tv-basicstudies" // Add default SMA
                     ],
                 });
             }

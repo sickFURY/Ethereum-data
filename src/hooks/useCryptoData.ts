@@ -51,27 +51,32 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
             setError(null);
 
             try {
-                // Fetch current stats
+                // Determine Binance Symbol for Live Price Feed
+                const binanceSymbol = coinId === 'ethereum' ? 'ETHUSDT' : coinId === 'solana' ? 'SOLUSDT' : 'XRPUSDT';
+
+                // Fetch bulletproof live price data from Binance
+                const binanceResponse = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`);
+                if (binanceResponse.ok) {
+                    const binanceData = await binanceResponse.json();
+                    if (isMounted) {
+                        setCurrentPrice(parseFloat(binanceData.lastPrice));
+                        setPriceChange24h(parseFloat(binanceData.priceChange));
+                        setPriceChangePercent24h(parseFloat(binanceData.priceChangePercent));
+                        setVolume24h(parseFloat(binanceData.quoteVolume)); // 24h Volume in USDT
+                    }
+                }
+
+                // Fetch market cap from CoinGecko
                 const statsResponse = await fetch(
-                    `${API_BASE_URL}/simple/price?ids=${coinId}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`
+                    `${API_BASE_URL}/simple/price?ids=${coinId}&vs_currencies=usd&include_market_cap=true`
                 );
 
-                if (!statsResponse.ok) throw new Error(`Failed to fetch ${coinId} stats`);
-
-                const statsData = await statsResponse.json();
-                const coinStats = statsData[coinId];
-
-                if (isMounted && coinStats) {
-                    setCurrentPrice(coinStats.usd);
-                    setMarketCap(coinStats.usd_market_cap);
-                    setVolume24h(coinStats.usd_24h_vol);
-                    // CoinGecko provides change directly 
-                    const current = coinStats.usd;
-                    const changePercent = coinStats.usd_24h_change;
-                    // Calculate absolute change based on percentage
-                    const previousPrice = current / (1 + (changePercent / 100));
-                    setPriceChange24h(current - previousPrice);
-                    setPriceChangePercent24h(changePercent);
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    const coinStats = statsData[coinId];
+                    if (isMounted && coinStats) {
+                        setMarketCap(coinStats.usd_market_cap);
+                    }
                 }
 
                 // Fetch historical data for charts
@@ -176,27 +181,40 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                 if (isMounted) {
                     setError('Using simulated data (Live API rate limited)');
 
-                    let mockStartPrice = 3300;
-                    if (coinId === 'ripple') mockStartPrice = 0.60;
-                    if (coinId === 'solana') mockStartPrice = 145;
+                    // If Binance failed (rare) or CoinGecko charts hit rate limit, we use fallback
+                    // But if Binance succeeded, we keep the live price!
 
-                    setCurrentPrice(mockStartPrice * 1.02);
-                    setMarketCap(mockStartPrice * 120000000);
-                    setVolume24h(mockStartPrice * 5000000);
-                    setPriceChange24h(mockStartPrice * 0.02);
-                    setPriceChangePercent24h(2.4);
+                    let livePrice = currentPrice;
+
+                    if (!livePrice) {
+                        let mockStartPrice = 3300;
+                        if (coinId === 'ripple') mockStartPrice = 0.60;
+                        if (coinId === 'solana') mockStartPrice = 145;
+                        livePrice = mockStartPrice;
+
+                        setCurrentPrice(livePrice);
+                        setVolume24h(livePrice * 5000000);
+                        setPriceChange24h(livePrice * 0.02);
+                        setPriceChangePercent24h(2.4);
+                    }
+
+                    // Approximate Market Cap if CoinGecko failed
+                    let approxSupply = 120000000;
+                    if (coinId === 'ripple') approxSupply = 56000000000;
+                    if (coinId === 'solana') approxSupply = 468000000;
+                    setMarketCap(livePrice * approxSupply);
 
                     setExchangeVolumes([
-                        { exchangeName: 'Binance', volume24h: mockStartPrice * 2100000, marketShare: 42 },
-                        { exchangeName: 'Coinbase Exchange', volume24h: mockStartPrice * 800000, marketShare: 16 },
-                        { exchangeName: 'Kraken', volume24h: mockStartPrice * 550000, marketShare: 11 },
-                        { exchangeName: 'KuCoin', volume24h: mockStartPrice * 400000, marketShare: 8 },
-                        { exchangeName: 'Bybit', volume24h: mockStartPrice * 350000, marketShare: 7 },
+                        { exchangeName: 'Binance', volume24h: livePrice * 2100000, marketShare: 42 },
+                        { exchangeName: 'Coinbase Exchange', volume24h: livePrice * 800000, marketShare: 16 },
+                        { exchangeName: 'Kraken', volume24h: livePrice * 550000, marketShare: 11 },
+                        { exchangeName: 'KuCoin', volume24h: livePrice * 400000, marketShare: 8 },
+                        { exchangeName: 'Bybit', volume24h: livePrice * 350000, marketShare: 7 },
                     ]);
 
                     const mockChartData: ChartDataPoint[] = [];
                     const now = new Date();
-                    let currentMockPrice = mockStartPrice;
+                    let currentMockPrice = livePrice;
 
                     const points = timeframe === '1D' ? 24 : timeframe === '1W' ? 7 : timeframe === '1M' ? 30 : 365;
                     const timeStep = timeframe === '1D' ? 3600000 : 86400000;
