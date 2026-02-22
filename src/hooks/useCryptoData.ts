@@ -11,7 +11,7 @@ export interface ChartDataPoint {
     close: number;
 }
 
-interface UseEthereumDataResult {
+interface UseCryptoDataResult {
     currentPrice: number | null;
     priceChange24h: number | null;
     priceChangePercent24h: number | null;
@@ -24,9 +24,8 @@ interface UseEthereumDataResult {
 
 // Using CoinGecko Free API as our data source
 const API_BASE_URL = 'https://api.coingecko.com/api/v3';
-const ETH_ID = 'ethereum';
 
-export function useEthereumData(timeframe: Timeframe): UseEthereumDataResult {
+export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDataResult {
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
     const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
     const [priceChangePercent24h, setPriceChangePercent24h] = useState<number | null>(null);
@@ -46,21 +45,21 @@ export function useEthereumData(timeframe: Timeframe): UseEthereumDataResult {
             try {
                 // Fetch current stats
                 const statsResponse = await fetch(
-                    `${API_BASE_URL}/simple/price?ids=${ETH_ID}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`
+                    `${API_BASE_URL}/simple/price?ids=${coinId}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`
                 );
 
-                if (!statsResponse.ok) throw new Error('Failed to fetch Ethereum stats');
+                if (!statsResponse.ok) throw new Error(`Failed to fetch ${coinId} stats`);
 
                 const statsData = await statsResponse.json();
-                const ethStats = statsData[ETH_ID];
+                const coinStats = statsData[coinId];
 
-                if (isMounted) {
-                    setCurrentPrice(ethStats.usd);
-                    setMarketCap(ethStats.usd_market_cap);
-                    setVolume24h(ethStats.usd_24h_vol);
+                if (isMounted && coinStats) {
+                    setCurrentPrice(coinStats.usd);
+                    setMarketCap(coinStats.usd_market_cap);
+                    setVolume24h(coinStats.usd_24h_vol);
                     // CoinGecko provides change directly 
-                    const current = ethStats.usd;
-                    const changePercent = ethStats.usd_24h_change;
+                    const current = coinStats.usd;
+                    const changePercent = coinStats.usd_24h_change;
                     // Calculate absolute change based on percentage
                     const previousPrice = current / (1 + (changePercent / 100));
                     setPriceChange24h(current - previousPrice);
@@ -77,10 +76,10 @@ export function useEthereumData(timeframe: Timeframe): UseEthereumDataResult {
                 }
 
                 const historyResponse = await fetch(
-                    `${API_BASE_URL}/coins/${ETH_ID}/ohlc?vs_currency=usd&days=${days}`
+                    `${API_BASE_URL}/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`
                 );
 
-                if (!historyResponse.ok) throw new Error('Failed to fetch Ethereum chart data');
+                if (!historyResponse.ok) throw new Error(`Failed to fetch ${coinId} chart data`);
 
                 const historyData = await historyResponse.json();
 
@@ -134,15 +133,20 @@ export function useEthereumData(timeframe: Timeframe): UseEthereumDataResult {
                 console.warn('API fetch failed, using fallback data.', err);
                 if (isMounted) {
                     setError('Using simulated data (Live API rate limited)');
-                    setCurrentPrice(3421.50);
-                    setMarketCap(412500000000);
-                    setVolume24h(18200000000);
-                    setPriceChange24h(82.11);
+
+                    let mockStartPrice = 3300;
+                    if (coinId === 'ripple') mockStartPrice = 0.60;
+                    if (coinId === 'solana') mockStartPrice = 145;
+
+                    setCurrentPrice(mockStartPrice * 1.02);
+                    setMarketCap(mockStartPrice * 120000000);
+                    setVolume24h(mockStartPrice * 5000000);
+                    setPriceChange24h(mockStartPrice * 0.02);
                     setPriceChangePercent24h(2.4);
 
                     const mockChartData: ChartDataPoint[] = [];
                     const now = new Date();
-                    let currentMockPrice = 3300;
+                    let currentMockPrice = mockStartPrice;
 
                     const points = timeframe === '1D' ? 24 : timeframe === '1W' ? 7 : timeframe === '1M' ? 30 : 365;
                     const timeStep = timeframe === '1D' ? 3600000 : 86400000;
@@ -189,7 +193,7 @@ export function useEthereumData(timeframe: Timeframe): UseEthereumDataResult {
             isMounted = false;
             clearInterval(interval);
         };
-    }, [timeframe]);
+    }, [coinId, timeframe]);
 
     return {
         currentPrice,

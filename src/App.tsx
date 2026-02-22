@@ -1,11 +1,25 @@
 import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Clock, Wallet, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 import { useState } from 'react';
-import type { Timeframe } from './hooks/useEthereumData';
-import { useEthereumData } from './hooks/useEthereumData';
+import type { Timeframe } from './hooks/useCryptoData';
+import { useCryptoData } from './hooks/useCryptoData';
+
+interface CryptoAsset {
+  id: string;
+  name: string;
+  symbol: string;
+  tvSymbol: string;
+}
+
+const SUPPORTED_ASSETS: CryptoAsset[] = [
+  { id: 'ethereum', name: 'Ethereum', symbol: 'ETH/USD', tvSymbol: 'BINANCE:ETHUSDT' },
+  { id: 'solana', name: 'Solana', symbol: 'SOL/USD', tvSymbol: 'BINANCE:SOLUSDT' },
+  { id: 'ripple', name: 'XRP', symbol: 'XRP/USD', tvSymbol: 'BINANCE:XRPUSDT' },
+];
 import { AdvancedChart } from './components/AdvancedChart';
 
 function App() {
   const [timeframe] = useState<Timeframe>('1W');
+  const [activeAsset, setActiveAsset] = useState<CryptoAsset>(SUPPORTED_ASSETS[0]);
   const [isChartFullscreen, setIsChartFullscreen] = useState(false);
   const {
     currentPrice,
@@ -14,7 +28,7 @@ function App() {
     marketCap,
     volume24h,
     isLoading
-  } = useEthereumData(timeframe);
+  } = useCryptoData(activeAsset.id, timeframe);
 
   const formatCurrency = (value: number | null, maximumFractionDigits = 2) => {
     if (value === null) return '---';
@@ -52,15 +66,30 @@ function App() {
       <main className="main-content">
         <header className="dashboard-header animate-fade-in">
           <div>
-            <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '8px' }}>Ethereum Analytics</h1>
+            <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '8px' }}>{activeAsset.name} Analytics</h1>
             <p style={{ color: 'var(--text-secondary)' }}>Live market data and technical charts</p>
           </div>
 
-          <div className="glass-panel" style={{ padding: '12px 24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>ETH/USD</span>
-            <span className="stat-value text-gradient">
-              {isLoading && !currentPrice ? <Loader2 className="animate-spin" size={24} /> : formatCurrency(currentPrice)}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            {/* Asset Selector Menu */}
+            <div className="timeframe-selector">
+              {SUPPORTED_ASSETS.map(asset => (
+                <button
+                  key={asset.id}
+                  className={`timeframe-btn ${activeAsset.id === asset.id ? 'active' : ''}`}
+                  onClick={() => setActiveAsset(asset)}
+                >
+                  {asset.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="glass-panel" style={{ padding: '12px 24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{activeAsset.symbol}</span>
+              <span className="stat-value text-gradient">
+                {isLoading && !currentPrice ? <Loader2 className="animate-spin" size={24} /> : formatCurrency(currentPrice)}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -133,7 +162,7 @@ function App() {
               </button>
             )}
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-              <AdvancedChart symbol="BINANCE:ETHUSD" theme="dark" />
+              <AdvancedChart symbol={activeAsset.tvSymbol} theme="dark" />
             </div>
           </div>
 
