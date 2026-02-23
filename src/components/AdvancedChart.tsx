@@ -24,7 +24,7 @@ export const AdvancedChart: React.FC<ChartProps> = ({
                 new window.TradingView.widget({
                     autosize: true,
                     symbol: symbol,
-                    interval: "1D",
+                    interval: "15", // Default to 15 minutes
                     timezone: "Etc/UTC",
                     theme: theme,
                     style: "1",
@@ -34,7 +34,7 @@ export const AdvancedChart: React.FC<ChartProps> = ({
                     gridColor: theme === 'dark' ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)",
                     hide_top_toolbar: false,
                     hide_legend: false,
-                    save_image: false,
+                    save_image: true, // Allow saving snapshots and config
                     container_id: containerId,
                     toolbar_bg: theme === 'dark' ? "rgba(11, 14, 20, 1)" : "#f1f3f6",
                     withdateranges: true,
@@ -46,6 +46,10 @@ export const AdvancedChart: React.FC<ChartProps> = ({
                     details: true,
                     hotlist: true,
                     calendar: false,
+                    autosave: true, // Automatically save chart settings and drawings to local storage
+                    // Pseudo-credentials to force local storage caching for drawings/indicators on the free widget
+                    client_id: 'tradingview.com',
+                    user_id: 'public_user_id',
                     studies: [
                         "MASimple@tv-basicstudies" // Add default SMA
                     ],
