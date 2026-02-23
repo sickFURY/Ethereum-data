@@ -50,6 +50,8 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
             setIsLoading(true);
             setError(null);
 
+            let fetchedLivePrice: number | null = null;
+
             try {
                 // Determine Binance Symbol for Live Price Feed
                 const binanceSymbol = coinId === 'ethereum' ? 'ETHUSDT' : coinId === 'solana' ? 'SOLUSDT' : 'XRPUSDT';
@@ -58,8 +60,9 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                 const binanceResponse = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`);
                 if (binanceResponse.ok) {
                     const binanceData = await binanceResponse.json();
+                    fetchedLivePrice = parseFloat(binanceData.lastPrice);
                     if (isMounted) {
-                        setCurrentPrice(parseFloat(binanceData.lastPrice));
+                        setCurrentPrice(fetchedLivePrice);
                         setPriceChange24h(parseFloat(binanceData.priceChange));
                         setPriceChangePercent24h(parseFloat(binanceData.priceChangePercent));
                         setVolume24h(parseFloat(binanceData.quoteVolume)); // 24h Volume in USDT
@@ -181,17 +184,11 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                 if (isMounted) {
                     setError('Using simulated data (Live API rate limited)');
 
-                    // If Binance failed (rare) or CoinGecko charts hit rate limit, we use fallback
-                    // But if Binance succeeded, we keep the live price!
+                    // Use the Binance price we just got, falling back to hardcoded mocks ONLY if Binance itself is down.
+                    const livePrice = fetchedLivePrice || (coinId === 'solana' ? 145 : coinId === 'ripple' ? 0.60 : 3300);
 
-                    let livePrice = currentPrice;
-
-                    if (!livePrice) {
-                        let mockStartPrice = 3300;
-                        if (coinId === 'ripple') mockStartPrice = 0.60;
-                        if (coinId === 'solana') mockStartPrice = 145;
-                        livePrice = mockStartPrice;
-
+                    if (!fetchedLivePrice) {
+                        // Only set these if Binance completely failed
                         setCurrentPrice(livePrice);
                         setVolume24h(livePrice * 5000000);
                         setPriceChange24h(livePrice * 0.02);
