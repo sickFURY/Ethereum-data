@@ -58,13 +58,13 @@ function App() {
     <div className="app-container">
       <div className="glow-bg" />
 
-      {/* Sidebar/Navigation (simplified for dashboard) */}
-      <aside style={{ width: '80px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 0', gap: '32px' }}>
-        <div style={{ padding: '12px', background: 'var(--gradient-primary)', borderRadius: '12px', color: 'white' }}>
+      {/* Sidebar/Navigation (responsive) */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
           <Activity size={24} />
         </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--text-secondary)' }}>
-          <BarChart3 size={24} style={{ color: 'var(--text-primary)' }} />
+        <nav className="sidebar-nav">
+          <BarChart3 size={24} className={activeTab === 'dashboard' ? 'active-icon' : ''} />
           <Wallet size={24} />
           <Clock size={24} />
         </nav>
@@ -95,12 +95,12 @@ function App() {
         {activeTab === 'dashboard' ? (
           <>
             <header className="dashboard-header animate-fade-in">
-              <div>
+              <div className="dashboard-header-title">
                 <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '8px' }}>{activeAsset.name} Analytics</h1>
                 <p style={{ color: 'var(--text-secondary)' }}>Live market data and technical charts</p>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+              <div className="header-actions">
                 {/* Asset Selector Menu */}
                 <div className="timeframe-selector">
                   {SUPPORTED_ASSETS.map(asset => (

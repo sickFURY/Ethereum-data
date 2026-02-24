@@ -102,6 +102,39 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
+  /* Prevents flex items from blowing out width */
+}
+
+/* Sidebar Layout (Desktop First) */
+.sidebar {
+  width: 80px;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  gap: 32px;
+  background: var(--bg-primary);
+  z-index: 50;
+}
+
+.sidebar-logo {
+  padding: 12px;
+  background: var(--gradient-primary);
+  border-radius: 12px;
+  color: white;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--text-secondary);
+}
+
+.sidebar-nav .active-icon {
+  color: var(--text-primary);
 }
 
 .dashboard-header {
@@ -109,6 +142,14 @@ h6 {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  gap: 16px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
 .tabs-nav {
@@ -117,6 +158,19 @@ h6 {
   margin-bottom: 24px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.tabs-nav::-webkit-scrollbar {
+  display: none;
+  /* Safari and Chrome */
+}
+
+.tabs-nav {
+  white-space: nowrap;
 }
 
 .tab-btn {
@@ -167,6 +221,91 @@ h6 {
   .charts-grid {
     grid-template-columns: 1fr;
     height: auto;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+    padding-bottom: 70px;
+    /* Space for bottom nav */
+  }
+
+  /* Bottom Navigation Bar */
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 0 16px;
+    border-right: none;
+    border-top: 1px solid var(--border-color);
+    background: rgba(10, 11, 15, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .sidebar-logo {
+    display: none;
+    /* Hide logo on mobile bottom nav to save space */
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Main Content Scaling */
+  .main-content {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-header-title h1 {
+    font-size: 1.5rem !important;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .timeframe-selector {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .timeframe-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 0.85rem;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .chart-container {
+    padding: 12px;
+    min-height: 350px;
   }
 }
 
