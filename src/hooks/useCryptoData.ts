@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 
-export type Timeframe = '1D' | '1W' | '1M' | '1Y';
+export type Timeframe = '1H' | '1D' | '1W' | '1M' | '1Y';
 
 export interface ChartDataPoint {
     time: string | number;
@@ -85,6 +85,7 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                 // Fetch historical data for charts
                 let days = '1';
                 switch (timeframe) {
+                    case '1H': days = '1'; break;
                     case '1D': days = '1'; break;
                     case '1W': days = '7'; break;
                     case '1M': days = '30'; break;
@@ -100,6 +101,7 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                     let totalVolume = 0;
 
                     // Group by market and sum USD volume across all pairs
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     tickersData.tickers.forEach((ticker: any) => {
                         const exchange = ticker.market.name;
                         const volumeUsd = ticker.converted_volume.usd;
@@ -142,7 +144,7 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                     const close = item[4];
 
                     let formattedTime;
-                    if (timeframe === '1D') {
+                    if (timeframe === '1D' || timeframe === '1H') {
                         formattedTime = Math.floor(timestamp / 1000);
                     } else {
                         formattedTime = format(new Date(timestamp), 'yyyy-MM-dd');
@@ -160,7 +162,7 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                 // Deduping by time for lightweight charts requirement
                 let finalChartData = formattedChartData;
 
-                if (timeframe !== '1D') {
+                if (timeframe !== '1D' && timeframe !== '1H') {
                     const uniqueDays = new Map();
                     formattedChartData.forEach((point: ChartDataPoint) => {
                         uniqueDays.set(point.time, point);
@@ -213,8 +215,8 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                     const now = new Date();
                     let currentMockPrice = livePrice;
 
-                    const points = timeframe === '1D' ? 24 : timeframe === '1W' ? 7 : timeframe === '1M' ? 30 : 365;
-                    const timeStep = timeframe === '1D' ? 3600000 : 86400000;
+                    const points = timeframe === '1H' ? 60 : timeframe === '1D' ? 24 : timeframe === '1W' ? 7 : timeframe === '1M' ? 30 : 365;
+                    const timeStep = timeframe === '1H' ? 60000 : timeframe === '1D' ? 3600000 : 86400000;
 
                     // Generate mock OHLC data going FORWARD in time so it is strictly ascending
                     for (let i = points; i >= 0; i--) {
@@ -229,7 +231,7 @@ export function useCryptoData(coinId: string, timeframe: Timeframe): UseCryptoDa
                         const low = Math.min(open, close) - (Math.random() * 20);
 
                         // Use string in 'yyyy-MM-dd' for timeframe > 1D to prevent type crashes
-                        const timeValue = timeframe === '1D' ? Math.floor(time.getTime() / 1000) : format(time, 'yyyy-MM-dd');
+                        const timeValue = (timeframe === '1D' || timeframe === '1H') ? Math.floor(time.getTime() / 1000) : format(time, 'yyyy-MM-dd');
 
                         mockChartData.push({
                             time: timeValue,

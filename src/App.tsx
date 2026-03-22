@@ -1,4 +1,4 @@
-import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Clock, Wallet, Loader2, Maximize2, Minimize2 } from 'lucide-react';
+import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Bell, Clock, Wallet, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 import { useState } from 'react';
 import type { Timeframe } from './hooks/useCryptoData';
 import { useCryptoData } from './hooks/useCryptoData';
@@ -19,11 +19,16 @@ import { AdvancedChart } from './components/AdvancedChart';
 import { CryptoHeatmap } from './components/CryptoHeatmap';
 import { ExchangeVolume } from './components/ExchangeVolume';
 import { LiquidationIntel } from './components/LiquidationIntel';
+import { MarketSentiment } from './components/MarketSentiment';
+import { WhaleAlerts } from './components/WhaleAlerts';
+import { PriceAlerts } from './components/PriceAlerts';
+import { usePriceAlerts } from './hooks/usePriceAlerts';
+import { useAllPrices } from './hooks/useAllPrices';
 
-type DashboardTab = 'dashboard' | 'heatmap' | 'liquidation';
+type DashboardTab = 'dashboard' | 'heatmap' | 'liquidation' | 'alerts';
 
 function App() {
-  const [timeframe] = useState<Timeframe>('1W');
+  const [timeframe, setTimeframe] = useState<Timeframe>('1W');
   const [activeTab, setActiveTab] = useState<DashboardTab>('dashboard');
   const [activeAsset, setActiveAsset] = useState<CryptoAsset>(SUPPORTED_ASSETS[0]);
   const [isChartFullscreen, setIsChartFullscreen] = useState(false);
@@ -36,6 +41,12 @@ function App() {
     exchangeVolumes,
     isLoading
   } = useCryptoData(activeAsset.id, timeframe);
+
+  const allPrices = useAllPrices();
+
+  const { allActiveCount } = usePriceAlerts({
+    prices: allPrices,
+  });
 
   const formatCurrency = (value: number | null, maximumFractionDigits = 2) => {
     if (value === null) return '---';
@@ -64,7 +75,11 @@ function App() {
           <Activity size={24} />
         </div>
         <nav className="sidebar-nav">
-          <BarChart3 size={24} className={activeTab === 'dashboard' ? 'active-icon' : ''} />
+          <BarChart3 size={24} className={activeTab === 'dashboard' ? 'active-icon' : ''} onClick={() => setActiveTab('dashboard')} style={{ cursor: 'pointer' }} />
+          <div className="bell-wrapper" onClick={() => setActiveTab('alerts')} title="Price Alerts">
+            <Bell size={24} className={activeTab === 'alerts' ? 'active-icon' : ''} />
+            {allActiveCount > 0 && <span className="bell-badge">{allActiveCount}</span>}
+          </div>
           <Wallet size={24} />
           <Clock size={24} />
         </nav>
@@ -90,6 +105,12 @@ function App() {
           >
             Liquidation Intel
           </button>
+          <button
+            className={`tab-btn ${activeTab === 'alerts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('alerts')}
+          >
+            Price Alerts
+          </button>
         </nav>
 
         {activeTab === 'dashboard' ? (
@@ -102,7 +123,7 @@ function App() {
 
               <div className="header-actions">
                 {/* Asset Selector Menu */}
-                <div className="timeframe-selector">
+                <div className="timeframe-selector" style={{ marginRight: '8px' }}>
                   {SUPPORTED_ASSETS.map(asset => (
                     <button
                       key={asset.id}
@@ -110,6 +131,19 @@ function App() {
                       onClick={() => setActiveAsset(asset)}
                     >
                       {asset.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Timeframe Selector */}
+                <div className="timeframe-selector">
+                  {(['1H', '1D', '1W', '1M', '1Y'] as Timeframe[]).map(tf => (
+                    <button
+                      key={tf}
+                      className={`timeframe-btn ${timeframe === tf ? 'active' : ''}`}
+                      onClick={() => setTimeframe(tf)}
+                    >
+                      {tf === '1D' ? '24H' : tf}
                     </button>
                   ))}
                 </div>
@@ -198,13 +232,28 @@ function App() {
 
               <ExchangeVolume data={exchangeVolumes} assetName={activeAsset.name} />
             </section>
+
+            {/* AI Analytics Area */}
+            <section className="charts-grid animate-fade-in" style={{ animationDelay: '0.3s', marginTop: '24px', height: 'auto' }}>
+              <div style={{ flex: 1 }}>
+                <MarketSentiment assetName={activeAsset.name} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <WhaleAlerts assetSymbol={activeAsset.symbol} />
+              </div>
+            </section>
           </>
         ) : activeTab === 'heatmap' ? (
           <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <CryptoHeatmap />
           </div>
-        ) : (
+        ) : activeTab === 'liquidation' ? (
           <LiquidationIntel assetName={activeAsset.name} />
+        ) : (
+          <PriceAlerts
+            prices={allPrices}
+            assets={SUPPORTED_ASSETS.map(a => ({ id: a.id, name: a.name, symbol: a.symbol }))}
+          />
         )}
       </main>
     </div>

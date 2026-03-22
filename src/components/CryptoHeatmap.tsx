@@ -32,9 +32,11 @@ export function CryptoHeatmap() {
 
         container.current.appendChild(script);
 
+        const currentContainer = container.current;
+
         return () => {
-            if (container.current) {
-                container.current.innerHTML = '';
+            if (currentContainer) {
+                currentContainer.innerHTML = '';
             }
         };
     }, []);
